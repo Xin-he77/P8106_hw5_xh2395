@@ -1,0 +1,142 @@
+---
+title: "P8106_hw5_xh2395"
+author: "Xin  He"
+date: "5/9/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ISLR)
+library(caret)
+library(e1071)
+library(mlbench)
+library(kernlab)
+```
+
+## Homework 5 Description
+
+This problem involves the OJ data set which is part of the ISLR package. The data contains
+1070 purchases where the customer either purchased Citrus Hill or Minute Maid Orange
+Juice. A number of characteristics of the customer and product are recorded. Create a
+training set containing a random sample of 800 observations, and a test set containing the
+remaining observations.
+
+## Import the data
+
+```{r}
+data(OJ)
+oj_data = OJ %>% 
+  janitor::clean_names()
+```
+
+## Create training data and test data
+
+```{r}
+set.seed(2020)
+rowTrain = createDataPartition(y = oj_data$purchase,
+                               p = 799/1070,
+                               list = F)
+train_data = oj_data[rowTrain, ]
+test_data = oj_data[-rowTrain, ]
+```
+
+## a) Fit a support vector classifier (linear kernel)
+
+```{r}
+ctrl = trainControl(method = "cv")
+
+set.seed(2020)
+
+svml_fit = train(purchase ~ ., 
+                  data = train_data, 
+                  method = "svmLinear2",
+                  preProcess = c("center", "scale"),
+                  tuneGrid = data.frame(cost = exp(seq(-5,-1,len=50))),
+                  trControl = ctrl)
+```
+
+### output
+
+```{r}
+svml_fit$finalModel
+
+svml_fit$bestTune
+```
+
+### plot 
+
+```{r}
+ggplot(svml_fit, highlight = TRUE)
+```
+
+### training error rate
+
+```{r}
+pred_train = predict(svml_fit)
+mean(train_data$purchase != pred_train)
+```
+
+The training error rate is 16.25%.
+
+### test error rate
+
+```{r}
+pred_test = predict(svml_fit, newdata = test_data, type = "raw")
+mean(test_data$purchase != pred_test)
+```
+
+The test error rate is 15.93%.
+
+## b) Fit a support vector machine with a radial kernel
+
+```{r}
+svmr_grid = expand.grid(C = exp(seq(-5,2,len=20)),
+                         sigma = exp(seq(-8,-1,len=10)))
+
+set.seed(2020) 
+
+svmr_fit = train(purchase ~ ., train_data,
+                  method = "svmRadial",
+                  preProcess = c("center", "scale"),
+                  tuneGrid = svmr_grid,
+                  trControl = ctrl)
+```
+
+### output
+
+```{r}
+svmr_fit$finalModel
+
+svmr_fit$bestTune
+```
+
+### plot 
+
+```{r}
+ggplot(svmr_fit, highlight = TRUE)
+```
+
+### training error rate
+
+```{r}
+pred_train2 = predict(svmr_fit)
+mean(train_data$purchase != pred_train2)
+```
+
+The training error rate is 16.88%.
+
+### test error rate
+
+```{r}
+pred_test2 = predict(svmr_fit, newdata = test_data, type = "raw")
+mean(test_data$purchase != pred_test2)
+```
+
+The test error rate is 16.30%.
+
+
+
+
+
